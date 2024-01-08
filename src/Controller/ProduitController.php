@@ -4,12 +4,13 @@ namespace App\Controller;
 
 use App\Entity\Produit;
 use App\Repository\ProduitRepository;
+use JMS\Serializer\SerializationContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
+use JMS\Serializer\SerializerInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
@@ -26,7 +27,8 @@ class ProduitController extends AbstractController
         $jsonProduitList = $cache->get($idCache, function (ItemInterface $item) use ($produitRepository, $page, $limit, $serializer) {
             $item->tag("produitCache");
             $produitList = $produitRepository->findAllPagination($page, $limit);
-            return $serializer->serialize($produitList, 'json');
+            $context = SerializationContext::create()->setGroups(['getProduit']);
+            return $serializer->serialize($produitList, 'json', $context);
         });
 
         return new JsonResponse($jsonProduitList, Response::HTTP_OK, [], true);
@@ -36,7 +38,8 @@ class ProduitController extends AbstractController
     #[Route('/api/produits/{id}', name: 'detailProduit', methods: ['GET'])]
     public function getDetailProduit(Produit $produit, SerializerInterface $serializer): JsonResponse 
     {
-        $jsonProduit = $serializer->serialize($produit, 'json');
+        $context = SerializationContext::create()->setGroups(['getProduit']);
+        $jsonProduit = $serializer->serialize($produit, 'json', $context);
         return new JsonResponse($jsonProduit, Response::HTTP_OK, [], true);
     }
 }

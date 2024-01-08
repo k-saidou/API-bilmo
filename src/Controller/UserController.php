@@ -4,11 +4,12 @@ namespace App\Controller;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use JMS\Serializer\SerializationContext;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
-use Symfony\Component\Serializer\SerializerInterface;
+use JMS\Serializer\SerializerInterface;
 
 class UserController extends AbstractController
 {
@@ -16,14 +17,16 @@ class UserController extends AbstractController
     public function getProfil(UserRepository $userRepository, SerializerInterface $serializer): JsonResponse
     {
         $profilList = $userRepository->findAll();
-        $jsonProfilList = $serializer->serialize($profilList, 'json', ['groups' => 'getClient']);
+        $context = SerializationContext::create()->setGroups(['getClient']);
+        $jsonProfilList = $serializer->serialize($profilList, 'json', $context);
         return new JsonResponse($jsonProfilList, Response::HTTP_OK, [], true);
     }
 
     #[Route('/api/users/{id}', name: 'detailUser', methods: ['GET'])]
     public function getDetailProfil(User $user, SerializerInterface $serializer): JsonResponse 
     {
-        $jsonProfilList = $serializer->serialize($user, 'json', ['groups' => 'getClient']);
+        $context = SerializationContext::create()->setGroups(['getClient']);
+        $jsonProfilList = $serializer->serialize($user, 'json', $context);
         return new JsonResponse($jsonProfilList, Response::HTTP_OK, [], true);
     }
 }

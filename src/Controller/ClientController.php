@@ -13,7 +13,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Serializer\SerializerInterface;
+use JMS\Serializer\SerializationContext;
+use JMS\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
@@ -31,8 +32,10 @@ class ClientController extends AbstractController
 
         $jsonClientList = $cache->get($idCache, function (ItemInterface $item) use ($clientRepository, $page, $limit, $serializer) {
             $item->tag("clientCache");
-            $clientList = $clientRepository->findAllPagination($page, $limit);
-            return $serializer->serialize($clientList, 'json', ['groups' => 'getUser']);
+            $clientList = $clientRepository->findAllPagination($page, $limit);  
+            $context = SerializationContext::create()->setGroups(['getUser']);
+
+            return $serializer->serialize($clientList, 'json', $context);
         });
 
         return new JsonResponse($jsonClientList, Response::HTTP_OK, [], true);
@@ -41,7 +44,8 @@ class ClientController extends AbstractController
     #[Route('/api/clients/{id}', name: 'detailClient', methods: ['GET'])]
     public function getDetailClient(Client $client, SerializerInterface $serializer): JsonResponse 
     {
-        $jsonClient = $serializer->serialize($client, 'json', ['groups' => 'getUser']);
+        $context = SerializationContext::create()->setGroups(['getUser']);
+        $jsonClient = $serializer->serialize($client, 'json', $context);
         
         return new JsonResponse($jsonClient, Response::HTTP_OK, [], true);
     }
@@ -81,7 +85,8 @@ class ClientController extends AbstractController
         // Si "find" ne trouve pas l'auteur, alors null sera retourné.
         $client->setUserClient($userRepository->find($userClient));
 
-        $jsonClient = $serializer->serialize($client, 'json', ['groups' => 'getClient']);
+        $context = SerializationContext::create()->setGroups(['getUser']);
+        $jsonClient = $serializer->serialize($client, 'json', $context);
         $location = $urlGenerator->generate('detailClient', ['id' => $client->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
         return new JsonResponse($jsonClient, Response::HTTP_CREATED, ["Location" => $location], true);
