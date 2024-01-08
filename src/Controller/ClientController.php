@@ -13,6 +13,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class ClientController extends AbstractController
 {
@@ -43,20 +44,28 @@ class ClientController extends AbstractController
     }
 
     #[Route('/api/clients', name:"createClient", methods: ['POST'])]
-    public function createClient(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, UserRepository $userRepository): JsonResponse 
+    public function createClient(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, UserRepository $userRepository, ValidatorInterface $validator): JsonResponse 
     {
 
         $client = $serializer->deserialize($request->getContent(), Client::class, 'json');
         // Récupération de l'ensemble des données envoyées sous forme de tableau
+
+        // On vérifie les erreurs
+        $errors = $validator->validate($client);
+
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
+
+        $em->persist($client);
+        $em->flush();
+
         $content = $request->toArray();
         // Récupération de l'userClient. S'il n'est pas défini, alors on met -1 par défaut.
         $userClient = $content['userClient'] ?? -1;
         // On cherche l'user qui correspond et on l'assigne au client.
         // Si "find" ne trouve pas l'auteur, alors null sera retourné.
         $client->setUserClient($userRepository->find($userClient));
-
-        $em->persist($client);
-        $em->flush();
 
         $jsonClient = $serializer->serialize($client, 'json', ['groups' => 'getClient']);
         $location = $urlGenerator->generate('detailClient', ['id' => $client->getId()], UrlGeneratorInterface::ABSOLUTE_URL);

@@ -6,6 +6,7 @@ use App\Repository\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
+use Symfony\Component\Validator\Constraints as Assert;
 
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
@@ -19,14 +20,17 @@ class Client
 
     #[ORM\Column(length: 255, nullable: false)]
     #[Groups(["getUser", "getClient"])]
+    #[Assert\NotBlank(message: "Le nom du client est obligatoire")]
     private ?string $nom = null;
 
     #[ORM\Column(length: 255, nullable: false)]
     #[Groups(["getUser", "getClient"])]
+    #[Assert\NotBlank(message: "Le prenom du client est obligatoire")]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 255, nullable: false)]
     #[Groups(["getUser", "getClient"])]
+    #[Assert\NotBlank(message: "L'email du client est obligatoire")]
     private ?string $email;
 
     // #[ORM\ManyToOne(inversedBy: 'clients')]
@@ -34,6 +38,8 @@ class Client
     #[ORM\JoinColumn(nullable: false)]
     #[Groups(["getClient"])]
     #[MaxDepth(1)] // Limite la profondeur de sérialisation
+    #[Assert\NotBlank(message: "L'id de l'user est manquant")]
+
     private ?User $userClient = null;
 
     public function getId(): ?int
