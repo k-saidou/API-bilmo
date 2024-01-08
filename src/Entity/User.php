@@ -38,17 +38,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 255)]
     private ?string $raisonSocial = null;
 
-    #[ORM\ManyToMany(targetEntity: Produit::class, mappedBy: 'userProduit')]
-    private Collection $produits;
-
     #[ORM\OneToMany(mappedBy: 'userClient', targetEntity: Client::class)]
     private Collection $clients;
-
-    public function __construct()
-    {
-        $this->produits = new ArrayCollection();
-        $this->clients = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -165,32 +156,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @return Collection<int, Produit>
-     */
-    public function getProduits(): Collection
-    {
-        return $this->produits;
-    }
-
-    public function addProduit(Produit $produit): static
-    {
-        if (!$this->produits->contains($produit)) {
-            $this->produits->add($produit);
-            $produit->addUserProduit($this);
-        }
-
-        return $this;
-    }
-
-    public function removeProduit(Produit $produit): static
-    {
-        if ($this->produits->removeElement($produit)) {
-            $produit->removeUserProduit($this);
-        }
-
-        return $this;
-    }
 
     /**
      * @return Collection<int, Client>
