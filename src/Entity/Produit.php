@@ -25,13 +25,6 @@ class Produit
     #[ORM\Column]
     private ?int $prix = null;
 
-    #[ORM\ManyToMany(targetEntity: User::class, inversedBy: 'produits')]
-    private Collection $userProduit;
-
-    public function __construct()
-    {
-        $this->userProduit = new ArrayCollection();
-    }
 
     public function getId(): ?int
     {
@@ -74,27 +67,4 @@ class Produit
         return $this;
     }
 
-    /**
-     * @return Collection<int, User>
-     */
-    public function getUserProduit(): Collection
-    {
-        return $this->userProduit;
-    }
-
-    public function addUserProduit(User $userProduit): static
-    {
-        if (!$this->userProduit->contains($userProduit)) {
-            $this->userProduit->add($userProduit);
-        }
-
-        return $this;
-    }
-
-    public function removeUserProduit(User $userProduit): static
-    {
-        $this->userProduit->removeElement($userProduit);
-
-        return $this;
-    }
 }
