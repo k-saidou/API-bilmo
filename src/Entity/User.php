@@ -3,11 +3,11 @@
 namespace App\Entity;
 
 use App\Repository\UserRepository;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\Groups;
 
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
@@ -15,10 +15,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    #[Groups(["getUser", "getClient"])]
+    private ?int $id;
 
     #[ORM\Column(length: 180, unique: true)]
-    private ?string $email = null;
+    #[Groups(["getUser", "getClient"])]
+    private ?string $email;
 
     #[ORM\Column]
     private array $roles = [];
@@ -27,18 +29,22 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
-    private ?string $password = null;
+    private ?string $password;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["getUser", "getClient"])]
     private ?string $nom = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Groups(["getUser", "getClient"])]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $raisonSocial = null;
+    #[Groups(["getUser", "getClient"])]
+    private ?string $raisonSocial;
 
     #[ORM\OneToMany(mappedBy: 'userClient', targetEntity: Client::class)]
+    #[Groups(["getUser"])]
     private Collection $clients;
 
     public function getId(): ?int

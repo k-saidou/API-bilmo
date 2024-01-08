@@ -4,6 +4,9 @@ namespace App\Entity;
 
 use App\Repository\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
+
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 class Client
@@ -11,19 +14,26 @@ class Client
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+    #[Groups(["getUser", "getClient"])]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: false)]
+    #[Groups(["getUser", "getClient"])]
     private ?string $nom = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: false)]
+    #[Groups(["getUser", "getClient"])]
     private ?string $prenom = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    private ?string $email = null;
+    #[ORM\Column(length: 255, nullable: false)]
+    #[Groups(["getUser", "getClient"])]
+    private ?string $email;
 
-    #[ORM\ManyToOne(inversedBy: 'clients')]
+    // #[ORM\ManyToOne(inversedBy: 'clients')]
+    #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'users', cascade: ['persist'])]
     #[ORM\JoinColumn(nullable: false)]
+    #[Groups(["getClient"])]
+    #[MaxDepth(1)] // Limite la profondeur de sérialisation
     private ?User $userClient = null;
 
     public function getId(): ?int
