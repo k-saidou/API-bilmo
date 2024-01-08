@@ -6,6 +6,7 @@ use App\Entity\Client;
 use App\Repository\ClientRepository;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Sensio\Bundle\FrameworkExtraBundle\Configuration\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,14 +15,25 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use Symfony\Contracts\Cache\ItemInterface;
+use Symfony\Contracts\Cache\TagAwareCacheInterface;
 
 class ClientController extends AbstractController
 {
     #[Route('/api/clients', name: 'app_client', methods: ['GET'])]
-    public function getClient(ClientRepository $clientRepository, SerializerInterface $serializer): JsonResponse
+    public function getClient(ClientRepository $clientRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
-        $clientList = $clientRepository->findAll();
-        $jsonClientList = $serializer->serialize($clientList, 'json', ['groups' => 'getUser']);
+
+        $page = $request->get('page', 1);
+        $limit = $request->get('limit', 10);
+
+        $idCache = "getAllClient-" . $page . "-" . $limit;
+
+        $jsonClientList = $cache->get($idCache, function (ItemInterface $item) use ($clientRepository, $page, $limit, $serializer) {
+            $item->tag("clientCache");
+            $clientList = $clientRepository->findAllPagination($page, $limit);
+            return $serializer->serialize($clientList, 'json', ['groups' => 'getUser']);
+        });
 
         return new JsonResponse($jsonClientList, Response::HTTP_OK, [], true);
     }
@@ -35,8 +47,9 @@ class ClientController extends AbstractController
     }
 
     #[Route('/api/clients/{id}', name: 'deleteClient', methods: ['DELETE'])]
-    public function deleteClient(Client $client, EntityManagerInterface $em): JsonResponse 
+    public function deleteClient(Client $client, EntityManagerInterface $em, TagAwareCacheInterface $cachePool): JsonResponse 
     {
+        $cachePool->invalidateTags(["ClientCache"]);
         $em->remove($client);
         $em->flush();
 
@@ -44,6 +57,7 @@ class ClientController extends AbstractController
     }
 
     #[Route('/api/clients', name:"createClient", methods: ['POST'])]
+    #[IsGranted('ROLE_USER', message: 'Vous n\'avez pas les droits suffisants pour créer un livre')]
     public function createClient(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, UserRepository $userRepository, ValidatorInterface $validator): JsonResponse 
     {
 
