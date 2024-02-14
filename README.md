@@ -28,28 +28,28 @@ Etape pour installer le programme:
 
 # server
 
-Depuis un terminal dans le dossier du projet, lancez la commande suivante :
+- Depuis un terminal dans le dossier du projet, lancez la commande suivante :
 symfony server:start 
 
 # Fixtures
 
-Depuis un terminal dans le dossier du projet, lancez la commande suivante :
+- Depuis un terminal dans le dossier du projet, lancez la commande suivante :
  php bin/console doctrine:fixtures:load     
 
 # Documentation API Bilmo
 
-Une fois le serveur démarré, vous pouvez vous rendre sur https://127.0.0.1:8000/apip pour avoir la documentation.
+- Une fois le serveur démarré, vous pouvez vous rendre sur https://127.0.0.1:8000/apip pour avoir la documentation.
 
 # Token
 
-Pour obtenir un token vous pouvez utiliser un comptes de démo :
+- Pour obtenir un token vous pouvez utiliser un comptes de démo :
 
 Email	Password
 khalil.muller@gmail.com	password
 bullrich@gmail.com	password
 langosh.kaden@senger.biz	password
 
-Une fois votre token obtenu, utilisez le en le passant dans le header de votre requête :
+- Une fois votre token obtenu, utilisez le en le passant dans le header de votre requête :
 
 Authorization: Bearer [token]
 
