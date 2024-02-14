@@ -44,11 +44,12 @@ symfony server:start
 
 - Pour obtenir un token vous pouvez utiliser un comptes de démo :
 
-Email	Password
-khalil.muller@gmail.com	password
-bullrich@gmail.com	password
-langosh.kaden@senger.biz	password
+Emai
+khalil.muller@gmail.com.
+bullrich@gmail.com.
+langosh.kaden@senger.biz.
 
+MDP: password
 - Une fois votre token obtenu, utilisez le en le passant dans le header de votre requête :
 
 Authorization: Bearer [token]
