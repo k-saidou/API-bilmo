@@ -39,6 +39,18 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
+    /**
+     * @param int|string $id
+     * @param int|null $lockMode
+     * @param int|null $lockVersion
+     * @return User|null
+     */
+    public function find($id, $lockMode = null, $lockVersion = null)
+    {
+        return parent::find($id, $lockMode, $lockVersion);
+    }
+
+
 //    /**
 //     * @return User[] Returns an array of User objects
 //     */

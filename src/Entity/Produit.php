@@ -7,7 +7,8 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use JMS\Serializer\Annotation\Groups;
 use Hateoas\Configuration\Annotation as Hateoas;
-
+use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiResource as MetadataApiResource;
 
 /**
  * @Hateoas\Relation(
@@ -22,6 +23,7 @@ use Hateoas\Configuration\Annotation as Hateoas;
  */
 
 #[ORM\Entity(repositoryClass: ProduitRepository::class)]
+#[MetadataApiResource()]
 class Produit
 {
     #[ORM\Id]

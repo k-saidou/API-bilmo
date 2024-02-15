@@ -33,6 +33,12 @@ class ClientController extends AbstractController
         $jsonClientList = $cache->get($idCache, function (ItemInterface $item) use ($clientRepository, $page, $limit, $serializer) {
             $item->tag("clientCache");
             $clientList = $clientRepository->findAllPagination($page, $limit);  
+
+            // Filtrer les clients de l'utilisateur connecté
+            $clientList = array_filter($clientList, function ($client) {
+                return $client->getUserClient() === $this->getUser();
+            });
+
             $context = SerializationContext::create()->setGroups(['getUser']);
 
             return $serializer->serialize($clientList, 'json', $context);
@@ -61,29 +67,21 @@ class ClientController extends AbstractController
     }
 
     #[Route('/api/clients', name:"createClient", methods: ['POST'])]
-    #[IsGranted('ROLE_USER', message: 'Vous n\'avez pas les droits suffisants pour créer un livre')]
+    #[IsGranted('ROLE_USER', message: 'Vous n\'avez pas les droits suffisants pour créer un client')]
     public function createClient(Request $request, SerializerInterface $serializer, EntityManagerInterface $em, UrlGeneratorInterface $urlGenerator, UserRepository $userRepository, ValidatorInterface $validator): JsonResponse 
     {
 
         $client = $serializer->deserialize($request->getContent(), Client::class, 'json');
         // Récupération de l'ensemble des données envoyées sous forme de tableau
-
-        // On vérifie les erreurs
-        $errors = $validator->validate($client);
-
-        if ($errors->count() > 0) {
-            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
-        }
-
-        $em->persist($client);
-        $em->flush();
-
         $content = $request->toArray();
         // Récupération de l'userClient. S'il n'est pas défini, alors on met -1 par défaut.
         $userClient = $content['userClient'] ?? -1;
         // On cherche l'user qui correspond et on l'assigne au client.
         // Si "find" ne trouve pas l'auteur, alors null sera retourné.
         $client->setUserClient($userRepository->find($userClient));
+
+        $em->persist($client);
+        $em->flush();
 
         $context = SerializationContext::create()->setGroups(['getUser']);
         $jsonClient = $serializer->serialize($client, 'json', $context);
