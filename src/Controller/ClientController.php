@@ -15,28 +15,49 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\SerializerInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTManager;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\Cache\ItemInterface;
 use Symfony\Contracts\Cache\TagAwareCacheInterface;
+use Lexik\Bundle\JWTAuthenticationBundle\Services\JWTTokenManagerInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+
 
 class ClientController extends AbstractController
 {
+
+
+    private $jwtManager;
+    private $tokenStorageInterface;
+
+
+    public function __construct(TokenStorageInterface $tokenStorageInterface, JWTTokenManagerInterface $jwtManager)
+    {
+        $this->jwtManager = $jwtManager;
+        $this->tokenStorageInterface = $tokenStorageInterface;
+    }
+
     #[Route('/api/clients', name: 'app_client', methods: ['GET'])]
+    #[IsGranted('ROLE_USER', message: 'Vous n\'avez pas les droits suffisants pour voir les clients')]
     public function getClient(ClientRepository $clientRepository, SerializerInterface $serializer, Request $request, TagAwareCacheInterface $cache): JsonResponse
     {
+        $user = $this->getUser();
+
+        if (!$user) {
+            return new JsonResponse("User not authenticated", JsonResponse::HTTP_UNAUTHORIZED);
+        }
 
         $page = $request->get('page', 1);
         $limit = $request->get('limit', 10);
 
         $idCache = "getAllClient-" . $page . "-" . $limit;
 
-        $jsonClientList = $cache->get($idCache, function (ItemInterface $item) use ($clientRepository, $page, $limit, $serializer) {
+        $jsonClientList = $cache->get($idCache, function (ItemInterface $item) use ($clientRepository, $user, $page, $limit, $serializer) {
             $item->tag("clientCache");
-            $clientList = $clientRepository->findAllPagination($page, $limit);  
+            $clientList = $clientRepository->findAllPagination($page, $limit);
 
-            // Filtrer les clients de l'utilisateur connecté
-            $clientList = array_filter($clientList, function ($client) {
-                return $client->getUserClient() === $this->getUser();
+            $clientList = array_filter($clientList, function ($client) use ($user) {
+                return $client->getUserClient() === $user;
             });
 
             $context = SerializationContext::create()->setGroups(['getUser']);
@@ -48,6 +69,7 @@ class ClientController extends AbstractController
     }
 
     #[Route('/api/clients/{id}', name: 'detailClient', methods: ['GET'])]
+    #[IsGranted('ROLE_USER', message: 'Vous n\'avez pas les droits suffisants pour voir les details')]
     public function getDetailClient(Client $client, SerializerInterface $serializer): JsonResponse 
     {
         $context = SerializationContext::create()->setGroups(['getUser']);
@@ -57,9 +79,33 @@ class ClientController extends AbstractController
     }
 
     #[Route('/api/clients/{id}', name: 'deleteClient', methods: ['DELETE'])]
-    public function deleteClient(Client $client, EntityManagerInterface $em, TagAwareCacheInterface $cachePool): JsonResponse 
+    #[IsGranted('ROLE_USER', message: 'Vous n\'avez pas les droits suffisants pour supprimer un client')]
+    public function deleteClient(Client $client, SerializerInterface $serializer, UserRepository $userRepository, EntityManagerInterface $em, TagAwareCacheInterface $cachePool, ValidatorInterface $validator): JsonResponse 
     {
+        $token = $this->tokenStorageInterface->getToken();
+        if (!$token) {
+            return new JsonResponse("Invalid token", JsonResponse::HTTP_BAD_REQUEST);
+        }
+        
+        $decodedJwtToken = $this->jwtManager->decode($token);
+        $username = $decodedJwtToken["username"];
+        
+        $user = $userRepository->findOneByEmail($username);
+        if (!$user) {
+            return new JsonResponse("User not found", JsonResponse::HTTP_NOT_FOUND);
+        }
+        
+        if ($client->getUserClient() !== $user) {
+            return new JsonResponse("Unauthorized", JsonResponse::HTTP_UNAUTHORIZED);
+        }
+
+        $errors = $validator->validate($client);
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
+        
         $cachePool->invalidateTags(["ClientCache"]);
+        
         $em->remove($client);
         $em->flush();
 
@@ -72,13 +118,15 @@ class ClientController extends AbstractController
     {
 
         $client = $serializer->deserialize($request->getContent(), Client::class, 'json');
-        // Récupération de l'ensemble des données envoyées sous forme de tableau
-        $content = $request->toArray();
-        // Récupération de l'userClient. S'il n'est pas défini, alors on met -1 par défaut.
-        $userClient = $content['userClient'] ?? -1;
-        // On cherche l'user qui correspond et on l'assigne au client.
-        // Si "find" ne trouve pas l'auteur, alors null sera retourné.
-        $client->setUserClient($userRepository->find($userClient));
+
+        $decodedJwtToken = $this->jwtManager->decode($this->tokenStorageInterface->getToken());
+        $client->setUserClient($userRepository->findOneByEmail($decodedJwtToken["username"]));
+
+        $errors = $validator->validate($client);
+
+        if ($errors->count() > 0) {
+            return new JsonResponse($serializer->serialize($errors, 'json'), JsonResponse::HTTP_BAD_REQUEST, [], true);
+        }
 
         $em->persist($client);
         $em->flush();
