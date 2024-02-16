@@ -8,7 +8,8 @@ use JMS\Serializer\Annotation\Groups;
 use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 use Hateoas\Configuration\Annotation as Hateoas;
-
+use ApiPlatform\Core\Annotation\ApiResource;
+use ApiPlatform\Metadata\ApiResource as MetadataApiResource;
 
 /**
  * @Hateoas\Relation(
@@ -31,6 +32,7 @@ use Hateoas\Configuration\Annotation as Hateoas;
  *
  */
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
+#[MetadataApiResource()]
 class Client
 {
     #[ORM\Id]
@@ -56,11 +58,10 @@ class Client
 
     // #[ORM\ManyToOne(inversedBy: 'clients')]
     #[ORM\ManyToOne(targetEntity: User::class, inversedBy: 'users', cascade: ['persist'])]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     #[Groups(["getClient"])]
     #[MaxDepth(1)] // Limite la profondeur de sérialisation
     #[Assert\NotBlank(message: "L'id de l'user est manquant")]
-
     private ?User $userClient = null;
 
     public function getId(): ?int
